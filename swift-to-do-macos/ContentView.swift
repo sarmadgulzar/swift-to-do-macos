@@ -23,6 +23,9 @@ struct ContentView: View {
                 HStack {
                     TextField("New todo", text: $newTodoTitle)
                         .textFieldStyle(.roundedBorder)
+                        .onSubmit {
+                                addItem()
+                            }
 
                     Button {
                         addItem()

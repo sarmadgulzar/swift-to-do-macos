@@ -5,42 +5,69 @@
 //  Created by Sarmad Gulzar on 09/06/2026.
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+
+    @Query(sort: \Item.createdAt, order: .reverse)
+    private var items: [Item]
+
+    @State private var newTodoTitle = ""
 
     var body: some View {
         NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
+            VStack {
+                HStack {
+                    TextField("New todo", text: $newTodoTitle)
+                        .textFieldStyle(.roundedBorder)
+
+                    Button {
+                        addItem()
                     } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+                        Image(systemName: "plus")
                     }
+                    .disabled(newTodoTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
-                .onDelete(perform: deleteItems)
-            }
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-            .toolbar {
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+                .padding()
+
+                List {
+                    ForEach(items) { item in
+                        HStack {
+                            Button {
+                                item.isCompleted.toggle()
+                            } label: {
+                                Image(
+                                    systemName: item.isCompleted
+                                        ? "checkmark.circle.fill" : "circle")
+                            }
+                            .buttonStyle(.plain)
+
+                            Text(item.title)
+                                .strikethrough(item.isCompleted)
+                                .foregroundStyle(item.isCompleted ? .secondary : .primary)
+                        }
                     }
+                    .onDelete(perform: deleteItems)
                 }
             }
+            .navigationTitle("Todos")
+            .navigationSplitViewColumnWidth(min: 220, ideal: 260)
         } detail: {
-            Text("Select an item")
+            Text("Select a todo")
         }
     }
 
     private func addItem() {
+        let title = newTodoTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !title.isEmpty else { return }
+
         withAnimation {
-            let newItem = Item(timestamp: Date())
+            let newItem = Item(title: title)
             modelContext.insert(newItem)
+            newTodoTitle = ""
         }
     }
 
@@ -51,9 +78,4 @@ struct ContentView: View {
             }
         }
     }
-}
-
-#Preview {
-    ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
 }

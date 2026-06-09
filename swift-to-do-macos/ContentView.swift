@@ -8,6 +8,14 @@
 import SwiftData
 import SwiftUI
 
+enum TodoFilter: String, CaseIterable, Identifiable {
+    case all = "All"
+    case active = "Active"
+    case completed = "Completed"
+
+    var id: Self { self }
+}
+
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
 
@@ -16,6 +24,7 @@ struct ContentView: View {
 
     @State private var newTodoTitle = ""
     @State private var selectedItem: Item?
+    @State private var filter: TodoFilter = .all
 
     var body: some View {
         NavigationSplitView {
@@ -35,9 +44,18 @@ struct ContentView: View {
                     .disabled(newTodoTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
                 .padding()
+                
+                Picker("Filter", selection: $filter) {
+                    ForEach(TodoFilter.allCases) { filter in
+                        Text(filter.rawValue).tag(filter)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
 
                 List(selection: $selectedItem) {
-                    ForEach(items) { item in
+                    ForEach(filteredItems) { item in
                         HStack {
                             Button {
                                 item.isCompleted.toggle()
@@ -92,7 +110,7 @@ struct ContentView: View {
     private func deleteItems(offsets: IndexSet) {
         withAnimation {
             for index in offsets {
-                modelContext.delete(items[index])
+                modelContext.delete(filteredItems[index])
             }
         }
     }
@@ -103,6 +121,17 @@ struct ContentView: View {
         withAnimation {
             modelContext.delete(selectedItem)
             self.selectedItem = nil
+        }
+    }
+    
+    private var filteredItems: [Item] {
+        switch filter {
+        case .all:
+            items
+        case .active:
+            items.filter { !$0.isCompleted }
+        case .completed:
+            items.filter { $0.isCompleted }
         }
     }
 }

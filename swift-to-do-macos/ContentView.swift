@@ -64,6 +64,7 @@ struct ContentView: View {
                                 item.isCompleted.toggle()
                             } label: {
                                 Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(selectedItemID == item.id ? .white : .secondary)
                             }
                             .buttonStyle(.plain)
 
@@ -88,11 +89,19 @@ struct ContentView: View {
         }
         .toolbar {
             Button {
+                selectedItemID = nil
+            } label: {
+                Label("Unselect", systemImage: "xmark.circle")
+            }
+            .disabled(selectedItemID == nil)
+            .keyboardShortcut(.cancelAction)
+
+            Button {
                 deleteSelectedItem()
             } label: {
                 Label("Delete", systemImage: "trash")
             }
-            .disabled(selectedItem == nil)
+            .disabled(selectedItemID == nil)
         }
         .searchable(text: $searchText, prompt: "Search todos")
     }
@@ -106,6 +115,10 @@ struct ContentView: View {
     }
     
     private func titleColor(for item: Item) -> Color {
+        if selectedItemID == item.id {
+            return .white
+        }
+
         if item.isCompleted {
             return .secondary
         }

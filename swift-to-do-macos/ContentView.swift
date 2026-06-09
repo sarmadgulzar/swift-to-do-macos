@@ -18,6 +18,27 @@ enum TodoFilter: String, CaseIterable, Identifiable {
     var id: Self { self }
 }
 
+struct TodoCommands {
+    var createNewItem: () -> Void
+    var search: () -> Void
+    var selectFilter: (TodoFilter) -> Void
+}
+
+private struct TodoCommandsKey: FocusedValueKey {
+    typealias Value = TodoCommands
+}
+
+extension FocusedValues {
+    var todoCommands: TodoCommands? {
+        get { self[TodoCommandsKey.self] }
+        set { self[TodoCommandsKey.self] = newValue }
+    }
+}
+
+private enum FocusedField {
+    case newTodo
+}
+
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
 
@@ -28,6 +49,9 @@ struct ContentView: View {
     @State private var newTodoTitle = ""
     @State private var filter: TodoFilter = .today
     @State private var searchText = ""
+    @State private var isSearchPresented = false
+
+    @FocusState private var focusedField: FocusedField?
 
     var body: some View {
         NavigationSplitView {
@@ -35,9 +59,10 @@ struct ContentView: View {
                 HStack {
                     TextField("New todo", text: $newTodoTitle)
                         .textFieldStyle(.roundedBorder)
+                        .focused($focusedField, equals: .newTodo)
                         .onSubmit {
-                                addItem()
-                            }
+                            addItem()
+                        }
 
                     Button {
                         addItem()
@@ -103,7 +128,29 @@ struct ContentView: View {
             }
             .disabled(selectedItemID == nil)
         }
-        .searchable(text: $searchText, prompt: "Search todos")
+        .searchable(
+            text: $searchText,
+            isPresented: $isSearchPresented,
+            prompt: "Search todos"
+        )
+        .focusedSceneValue(\.todoCommands, TodoCommands(
+            createNewItem: focusNewTodoField,
+            search: showSearch,
+            selectFilter: selectFilter
+        ))
+    }
+    
+    private func focusNewTodoField() {
+        newTodoTitle = ""
+        focusedField = .newTodo
+    }
+
+    private func showSearch() {
+        isSearchPresented = true
+    }
+
+    private func selectFilter(_ newFilter: TodoFilter) {
+        filter = newFilter
     }
     
     private var selectedItem: Item? {

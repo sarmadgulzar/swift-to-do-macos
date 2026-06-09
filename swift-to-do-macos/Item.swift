@@ -14,13 +14,15 @@ final class Item {
     var notes: String
     var isCompleted: Bool
     var createdAt: Date
+    var dueDate: Date?
 
 
 
-    init(title: String, notes: String = "", isCompleted: Bool = false, createdAt: Date = Date()) {
+    init(title: String, notes: String = "", isCompleted: Bool = false, createdAt: Date = Date(), dueDate: Date? = nil) {
         self.title = title
         self.notes = notes
         self.isCompleted = isCompleted
         self.createdAt = createdAt
+        self.dueDate = dueDate
     }
 }

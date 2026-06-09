@@ -19,6 +19,22 @@ struct TodoDetailView: View {
                 .lineLimit(4...10)
 
             Toggle("Completed", isOn: $item.isCompleted)
+            
+            Toggle("Has due date", isOn: Binding(
+                    get: { item.dueDate != nil },
+                    set: { item.dueDate = $0 ? Date() : nil }
+                ))
+
+            if item.dueDate != nil {
+                    DatePicker(
+                        "Due",
+                        selection: Binding(
+                            get: { item.dueDate ?? Date() },
+                            set: { item.dueDate = $0 }
+                        ),
+                        displayedComponents: [.date, .hourAndMinute]
+                    )
+            }
 
             LabeledContent("Created") {
                 Text(item.createdAt.formatted(date: .abbreviated, time: .shortened))

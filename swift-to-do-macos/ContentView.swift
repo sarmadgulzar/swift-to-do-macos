@@ -11,7 +11,8 @@ import SwiftUI
 enum TodoFilter: String, CaseIterable, Identifiable {
     case today = "Today"
     case upcoming = "Upcoming"
-    case completed = "Completed"
+    case someday = "Someday"
+    case done = "Done"
 
     var id: Self { self }
 }
@@ -135,9 +136,12 @@ struct ContentView: View {
         switch filter {
         case .today:
             filteredByStatus = items.filter { item in
-                !item.isCompleted &&
-                item.dueDate != nil &&
-                calendar.isDate(item.dueDate!, inSameDayAs: today)
+                guard let dueDate = item.dueDate else {
+                    return false
+                }
+
+                return !item.isCompleted &&
+                       calendar.isDate(dueDate, inSameDayAs: today)
             }
 
         case .upcoming:
@@ -151,7 +155,12 @@ struct ContentView: View {
                        dueDate > today
             }
 
-        case .completed:
+        case .someday:
+            filteredByStatus = items.filter { item in
+                !item.isCompleted && item.dueDate == nil
+            }
+
+        case .done:
             filteredByStatus = items.filter { item in
                 item.isCompleted
             }

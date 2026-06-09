@@ -9,6 +9,7 @@ import SwiftData
 import SwiftUI
 
 enum TodoFilter: String, CaseIterable, Identifiable {
+    case overdue = "Overdue"
     case today = "Today"
     case upcoming = "Upcoming"
     case someday = "Someday"
@@ -22,9 +23,9 @@ struct ContentView: View {
 
     @Query(sort: \Item.createdAt, order: .reverse)
     private var items: [Item]
-
+    
+    @State private var selectedItemID: UUID?
     @State private var newTodoTitle = ""
-    @State private var selectedItem: Item?
     @State private var filter: TodoFilter = .today
     @State private var searchText = ""
 
@@ -56,23 +57,21 @@ struct ContentView: View {
                 .pickerStyle(.segmented)
                 .padding(.horizontal)
 
-                List(selection: $selectedItem) {
+                List(selection: $selectedItemID) {
                     ForEach(filteredItems) { item in
                         HStack {
                             Button {
                                 item.isCompleted.toggle()
                             } label: {
-                                Image(
-                                    systemName: item.isCompleted
-                                        ? "checkmark.circle.fill" : "circle")
+                                Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
                             }
                             .buttonStyle(.plain)
 
                             Text(item.title)
                                 .strikethrough(item.isCompleted)
-                                .foregroundStyle(item.isCompleted ? .secondary : .primary)
+                                .foregroundStyle(titleColor(for: item))
                         }
-                        .tag(item)
+                        .tag(item.id)
                     }
                     .onDelete(perform: deleteItems)
                 }
@@ -96,6 +95,36 @@ struct ContentView: View {
             .disabled(selectedItem == nil)
         }
         .searchable(text: $searchText, prompt: "Search todos")
+    }
+    
+    private var selectedItem: Item? {
+        guard let selectedItemID else { return nil }
+
+        return items.first { item in
+            item.id == selectedItemID
+        }
+    }
+    
+    private func titleColor(for item: Item) -> Color {
+        if item.isCompleted {
+            return .secondary
+        }
+
+        if isOverdue(item) {
+            return .red
+        }
+
+        return .primary
+    }
+    
+    private func isOverdue(_ item: Item) -> Bool {
+        guard let dueDate = item.dueDate else {
+            return false
+        }
+
+        return !item.isCompleted &&
+               !Calendar.current.isDateInToday(dueDate) &&
+               dueDate < Date()
     }
 
     private func addItem() {
@@ -123,7 +152,7 @@ struct ContentView: View {
 
         withAnimation {
             modelContext.delete(selectedItem)
-            self.selectedItem = nil
+            selectedItemID = nil
         }
     }
     
@@ -134,6 +163,17 @@ struct ContentView: View {
         let filteredByStatus: [Item]
 
         switch filter {
+        case .overdue:
+            filteredByStatus = items.filter { item in
+                guard let dueDate = item.dueDate else {
+                    return false
+                }
+
+                return !item.isCompleted &&
+                       !calendar.isDate(dueDate, inSameDayAs: today) &&
+                       dueDate < today
+            }
+
         case .today:
             filteredByStatus = items.filter { item in
                 guard let dueDate = item.dueDate else {

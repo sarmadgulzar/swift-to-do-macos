@@ -9,8 +9,8 @@ import SwiftData
 import SwiftUI
 
 enum TodoFilter: String, CaseIterable, Identifiable {
-    case all = "All"
-    case active = "Active"
+    case today = "Today"
+    case upcoming = "Upcoming"
     case completed = "Completed"
 
     var id: Self { self }
@@ -24,7 +24,7 @@ struct ContentView: View {
 
     @State private var newTodoTitle = ""
     @State private var selectedItem: Item?
-    @State private var filter: TodoFilter = .all
+    @State private var filter: TodoFilter = .today
     @State private var searchText = ""
 
     var body: some View {
@@ -127,15 +127,34 @@ struct ContentView: View {
     }
     
     private var filteredItems: [Item] {
+        let calendar = Calendar.current
+        let today = Date()
+
         let filteredByStatus: [Item]
 
         switch filter {
-        case .all:
-            filteredByStatus = items
-        case .active:
-            filteredByStatus = items.filter { !$0.isCompleted }
+        case .today:
+            filteredByStatus = items.filter { item in
+                !item.isCompleted &&
+                item.dueDate != nil &&
+                calendar.isDate(item.dueDate!, inSameDayAs: today)
+            }
+
+        case .upcoming:
+            filteredByStatus = items.filter { item in
+                guard let dueDate = item.dueDate else {
+                    return false
+                }
+
+                return !item.isCompleted &&
+                       !calendar.isDate(dueDate, inSameDayAs: today) &&
+                       dueDate > today
+            }
+
         case .completed:
-            filteredByStatus = items.filter { $0.isCompleted }
+            filteredByStatus = items.filter { item in
+                item.isCompleted
+            }
         }
 
         let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)

@@ -15,6 +15,7 @@ struct ContentView: View {
     private var items: [Item]
 
     @State private var newTodoTitle = ""
+    @State private var selectedItem: Item?
 
     var body: some View {
         NavigationSplitView {
@@ -32,7 +33,7 @@ struct ContentView: View {
                 }
                 .padding()
 
-                List {
+                List(selection: $selectedItem) {
                     ForEach(items) { item in
                         HStack {
                             Button {
@@ -48,6 +49,7 @@ struct ContentView: View {
                                 .strikethrough(item.isCompleted)
                                 .foregroundStyle(item.isCompleted ? .secondary : .primary)
                         }
+                        .tag(item)
                     }
                     .onDelete(perform: deleteItems)
                 }
@@ -55,7 +57,20 @@ struct ContentView: View {
             .navigationTitle("Todos")
             .navigationSplitViewColumnWidth(min: 220, ideal: 260)
         } detail: {
-            Text("Select a todo")
+            if let selectedItem {
+                TodoDetailView(item: selectedItem)
+            } else {
+                Text("Select a todo")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .toolbar {
+            Button {
+                deleteSelectedItem()
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+            .disabled(selectedItem == nil)
         }
     }
 
@@ -76,6 +91,15 @@ struct ContentView: View {
             for index in offsets {
                 modelContext.delete(items[index])
             }
+        }
+    }
+    
+    private func deleteSelectedItem() {
+        guard let selectedItem else { return }
+
+        withAnimation {
+            modelContext.delete(selectedItem)
+            self.selectedItem = nil
         }
     }
 }

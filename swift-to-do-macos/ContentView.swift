@@ -25,6 +25,7 @@ struct ContentView: View {
     @State private var newTodoTitle = ""
     @State private var selectedItem: Item?
     @State private var filter: TodoFilter = .all
+    @State private var searchText = ""
 
     var body: some View {
         NavigationSplitView {
@@ -93,6 +94,7 @@ struct ContentView: View {
             }
             .disabled(selectedItem == nil)
         }
+        .searchable(text: $searchText, prompt: "Search todos")
     }
 
     private func addItem() {
@@ -125,13 +127,26 @@ struct ContentView: View {
     }
     
     private var filteredItems: [Item] {
+        let filteredByStatus: [Item]
+
         switch filter {
         case .all:
-            items
+            filteredByStatus = items
         case .active:
-            items.filter { !$0.isCompleted }
+            filteredByStatus = items.filter { !$0.isCompleted }
         case .completed:
-            items.filter { $0.isCompleted }
+            filteredByStatus = items.filter { $0.isCompleted }
+        }
+
+        let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmedSearch.isEmpty else {
+            return filteredByStatus
+        }
+
+        return filteredByStatus.filter { item in
+            item.title.localizedCaseInsensitiveContains(trimmedSearch)
+            || item.notes.localizedCaseInsensitiveContains(trimmedSearch)
         }
     }
 }
